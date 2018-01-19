@@ -20,15 +20,15 @@ let decodeProfile = json => Json.Decode.{
   profilePicture: json |> field("user", field("profile_pic_url_hd", string))
 };
 
-let fetchMore = (state, send) => {
+let fetchMore = (self) => {
   List.map(
     username => Api.getUser(username)
     |> Promise.andThen(decodeProfile)
     |> Promise.andThen(profile => {
-      send(AddProfile(profile))
+      self.send(AddProfile(profile))
     })
     |> ignore,
-    state.queue
+    self.state.queue
   ) |> ignore
 };
 
