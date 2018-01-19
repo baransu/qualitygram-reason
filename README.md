@@ -1,6 +1,6 @@
 # qualitygram-re
 
-Qualitygram (codeheroes-recruitment-app) written in Reason.
+Qualitygram written in Reason.
 
 My problems with Reason before any serious usage in production code. Divided in three levels of complexity how to solve them.
 
