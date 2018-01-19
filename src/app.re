@@ -1,5 +1,5 @@
 /**
- * Our type
+ * Our types
  */
 type image = {
   id: string,
