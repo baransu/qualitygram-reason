@@ -1,44 +1,61 @@
-type profile = {
-  username: string,
-  profilePicture: string
+/**
+ * Our type
+ */
+type image = {
+  id: string,
+  src: string
 };
 
 type action =
- | Fetch
- | AddProfile(profile);
+ | ProcessQueue
+ | AddImages(list(image));
 
 type state = {
+  loading: bool,
   processed: list(string),
   queue: list(string),
-  profiles: list(profile),
-  images: list(string)
+  images: list(image)
 };
 
-let decodeProfile = json => Json.Decode.{
-  username: json |> field("user", field("username", string)),
-  profilePicture: json |> field("user", field("profile_pic_url_hd", string))
+/**
+ * Set of decoders to decode instagram responses
+ */
+module Decode {
+  let codes = json => Json.Decode.(
+    json |> field("user", field("media", field("nodes", array(field("code", string)))))
+  );
+
+  let image = json => { 
+    let media = (decoder) => Json.Decode.(json |> field("graphql", field("shortcode_media", decoder)));
+    Json.Decode.{
+      id: media(field("id", string)),
+      src: media(field("display_url", string))
+    }
+  };
 };
 
-let fetchMore = (state, send) => {
-  List.map(
-    username => Api.getUser(username)
-    |> Promise.andThen(decodeProfile)
-    |> Promise.andThen(profile => {
-      send(AddProfile(profile))
-    })
-    |> ignore,
-    state.queue
-  ) |> ignore
-};
-
-/* Why this have to be after the action and state - I don't know and understand */
-let component = ReasonReact.reducerComponent("App");
-
-let initialState = () => { 
-  processed: [], 
-  queue: ["instagram"],
-  profiles: [],
-  images: []
+/**
+ * Fetching profile,
+ * getting codes
+ * mapping codes to image details
+ * decoding them and adding to state
+ */
+let fetchProfile = (username, send) => {
+  Api.getUser(username)
+    |> Promise.then_(profile => 
+        profile
+        |> Decode.codes
+        |> Array.map(Api.getImage(username)) 
+        |> Promise.all
+    )
+    |> Promise.andThen(images => 
+        images 
+        |> Array.map(Decode.image) 
+        |> Array.to_list 
+        |> (s => AddImages(s))
+        |> send
+    )
+    |> ignore
 };
 
 /**
@@ -47,32 +64,53 @@ let initialState = () => {
  */
 let reducer = (action, state) =>
   switch(action) {
-  | Fetch => ReasonReact.SideEffects(self => fetchMore(self.state, self.send))
-  | AddProfile(profile) => {
-      ReasonReact.Update({
+  | ProcessQueue => {
+    switch (state.queue) {
+    | [] => ReasonReact.NoUpdate
+    | [head, ...queue] => ReasonReact.UpdateWithSideEffects(
+        { ...state, queue, loading: true },
+        self => fetchProfile(head, self.send)
+      )
+    }
+    
+  }
+  | AddImages(images) => {
+      ReasonReact.UpdateWithSideEffects({
         ...state,
-        profiles: [profile, ...state.profiles]
-      })
+        loading: false,
+        images: List.append(images, state.images)
+      }, self => self.send(ProcessQueue))
     }
   };
 
 let make = (_children) => { 
-  ...component,
-
-  initialState,
+  ...ReasonReact.reducerComponent("App"),
+  initialState: () => { 
+    loading: false,
+    processed: [], 
+    queue: ["instagram"],
+    images: []
+  },
   reducer,
   render: (self) => {
-    let count = "Processed: " ++ 
-      (self.state.processed |> List.length |> string_of_int); /* ++ string_of_int(self.state);*/
+    let queueLength = (self.state.queue |> List.length |> string_of_int);
+
+    let loader = if (self.state.loading) {
+      Html.text("Loading...")
+    } else if (List.length(self.state.queue) > 0) {
+      <button onClick={(_) => self.send(ProcessQueue)}>(Html.text("fetch"))</button>
+    } else {
+      <div/>
+    };
 
     <div>
       <h1>
-        (Html.text(count))
+        (Html.text("In queue: " ++ queueLength))
       </h1>
+      (loader)
       <div>
-        (Html.map(user => Html.text(user.username), self.state.profiles))
+        (Html.map(i => <img key=i.id src=i.src />, self.state.images))
       </div>
-      <button onClick={(_) => self.send(Fetch)}>(Html.text("fetch"))</button>
     </div>
   }
 };

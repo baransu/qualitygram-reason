@@ -7,4 +7,4 @@ let get = (path: string) =>
 
 let getUser = (user: string) => get("/api/users/" ++ user);
 
-let getImage = (code: string, user: string) => get("/api/users/" ++ user ++ "/" ++ code);
+let getImage = (user: string, code: string) => get("/api/users/" ++ user ++ "/" ++ code);
