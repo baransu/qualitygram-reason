@@ -1,4 +1,4 @@
-# qualitygram-re
+# qualitygram-reason
 
 Qualitygram written in Reason.
 
