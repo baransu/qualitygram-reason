@@ -10,6 +10,10 @@
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
+"@glennsl/bs-json@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/@glennsl/bs-json/-/bs-json-1.1.0.tgz#137e2be2da16b43c04c6c29eb84e6036d2a83b94"
+
 "@types/node@*":
   version "9.3.0"
   resolved "https://registry.npmjs.org/@types/node/-/node-9.3.0.tgz#3a129cda7c4e5df2409702626892cb4b96546dd5"
@@ -329,6 +333,13 @@ aws-sign2@~0.7.0:
 aws4@^1.2.1, aws4@^1.6.0:
   version "1.6.0"
   resolved "https://registry.npmjs.org/aws4/-/aws4-1.6.0.tgz#83ef5ca860b2b32e4a0deedee8c771b9db57471e"
+
+axios@^0.17.1:
+  version "0.17.1"
+  resolved "https://registry.npmjs.org/axios/-/axios-0.17.1.tgz#2d8e3e5d0bdbd7327f91bc814f5c57660f81824d"
+  dependencies:
+    follow-redirects "^1.2.5"
+    is-buffer "^1.1.5"
 
 axobject-query@^0.1.0:
   version "0.1.0"
@@ -1033,7 +1044,7 @@ bn.js@^4.0.0, bn.js@^4.1.0, bn.js@^4.1.1, bn.js@^4.4.0:
   version "4.11.8"
   resolved "https://registry.npmjs.org/bn.js/-/bn.js-4.11.8.tgz#2cde09eb5ee341f484746bb0309b3253b1b1442f"
 
-body-parser@1.18.2:
+body-parser@1.18.2, body-parser@^1.18.2:
   version "1.18.2"
   resolved "https://registry.npmjs.org/body-parser/-/body-parser-1.18.2.tgz#87678a19d84b47d859b83199bd59bce222b10454"
   dependencies:
@@ -2465,7 +2476,7 @@ expect@^22.1.0:
     jest-message-util "^22.1.0"
     jest-regex-util "^22.1.0"
 
-express@^4.13.3:
+express@^4.13.3, express@^4.16.2:
   version "4.16.2"
   resolved "https://registry.npmjs.org/express/-/express-4.16.2.tgz#e35c6dfe2d64b7dca0a5cd4f21781be3299e076c"
   dependencies:
@@ -2689,6 +2700,12 @@ flat-cache@^1.2.1:
 flatten@^1.0.2:
   version "1.0.2"
   resolved "https://registry.npmjs.org/flatten/-/flatten-1.0.2.tgz#dae46a9d78fbe25292258cc1e780a41d95c03782"
+
+follow-redirects@^1.2.5:
+  version "1.3.0"
+  resolved "https://registry.npmjs.org/follow-redirects/-/follow-redirects-1.3.0.tgz#f684871fc116d2e329fda55ef67687f4fabc905c"
+  dependencies:
+    debug "^3.1.0"
 
 for-in@^1.0.1:
   version "1.0.2"
