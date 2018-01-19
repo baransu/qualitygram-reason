@@ -14,7 +14,6 @@ type state = {
   images: list(string)
 };
 
-
 let decodeProfile = json => Json.Decode.{
   username: json |> field("user", field("username", string)),
   profilePicture: json |> field("user", field("profile_pic_url_hd", string))
