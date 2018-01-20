@@ -7,8 +7,8 @@ type image = {
 };
 
 type action =
- | ProcessQueue
- | AddImages(list(image));
+  | ProcessQueue
+  | ProcessResult(list(string), list(image));
 
 type state = {
   loading: bool,
@@ -20,17 +20,54 @@ type state = {
 /**
  * Set of decoders to decode instagram responses
  */
-module Decode {
-  let codes = json => Json.Decode.(
-    json |> field("user", field("media", field("nodes", array(field("code", string)))))
-  );
-
-  let image = json => { 
-    let media = (decoder) => Json.Decode.(json |> field("graphql", field("shortcode_media", decoder)));
+module Decode = {
+  let codes = json =>
+    Json.Decode.(
+      json
+      |> field("user") @@
+      field("media") @@
+      field("nodes") @@
+      array @@
+      field("code") @@
+      string
+    );
+  let media = (json, decoder) =>
+    Json.Decode.(
+      json |> field("graphql") @@ field("shortcode_media") @@ decoder
+    );
+  let image = json => {
+    let media = media(json);
     Json.Decode.{
-      id: media(field("id", string)),
-      src: media(field("display_url", string))
-    }
+      id: media @@ field("id") @@ string,
+      src: media @@ field("display_url") @@ string
+    };
+  };
+  let usernames = json => {
+    let media = media(json);
+    let edges = decoder =>
+      Json.Decode.(field("edges") @@ array @@ field("node") @@ decoder);
+    let likes =
+      Json.Decode.(
+        media @@
+        field("edge_media_preview_like") @@
+        edges @@
+        field("username") @@
+        string
+      )
+      |> Array.to_list;
+    /* |> Debug.log; */
+    let comments =
+      Json.Decode.(
+        media @@
+        field("edge_media_to_comment") @@
+        edges @@
+        field("owner") @@
+        field("username") @@
+        string
+      )
+      |> Array.to_list;
+    /* |> Debug.log; */
+    List.flatten([likes, comments]);
   };
 };
 
@@ -40,77 +77,106 @@ module Decode {
  * mapping codes to image details
  * decoding them and adding to state
  */
-let fetchProfile = (username, send) => {
+let fetchProfile = (username, send) =>
   Api.getUser(username)
-    |> Promise.then_(profile => 
-        profile
-        |> Decode.codes
-        |> Array.map(Api.getImage(username)) 
-        |> Promise.all
-    )
-    |> Promise.andThen(images => 
-        images 
-        |> Array.map(Decode.image) 
-        |> Array.to_list 
-        |> (s => AddImages(s))
-        |> send
-    )
-    |> ignore
-};
+  |> Promise.then_(profile =>
+       profile
+       |> Decode.codes
+       |> Array.map(Api.getImage(username))
+       |> Promise.all
+     )
+  |> Promise.andThen(images => {
+       
+       let usernames = 
+       images
+       |> Array.to_list
+       |> List.map(Decode.usernames)
+       |> List.flatten;
+
+       let images = images
+       |> Array.map(Decode.image)
+       |> Array.to_list;
+
+       let u = ListExtra.lengthToString(usernames);
+       let i = ListExtra.lengthToString(images);
+        Js.log(username ++ ": found " ++ u ++ " usernames and " ++ i ++ " images!");
+       send(ProcessResult(usernames, images));
+       
+
+       ();
+     })
+  |> ignore;
 
 /**
- * It's cool that reducer can be just a function like anything else so 
+ * It's cool that reducer can be just a function like anything else so
  * we can have some space or we can even move logic into separe file
  */
 let reducer = (action, state) =>
-  switch(action) {
+  switch action {
   | ProcessQueue => {
-    switch (state.queue) {
-    | [] => ReasonReact.NoUpdate
-    | [head, ...queue] => ReasonReact.UpdateWithSideEffects(
-        { ...state, queue, loading: true },
-        self => fetchProfile(head, self.send)
-      )
-    }
-    
-  }
-  | AddImages(images) => {
+    if (List.length(state.processed) < 20) {
+      switch state.queue {
+        | [] => ReasonReact.NoUpdate
+        | [head, ...queue] =>
+          ReasonReact.UpdateWithSideEffects(
+            {...state,
+              queue, 
+              processed: [head, ...state.processed],
+              loading: true
+            },
+            (self => fetchProfile(head |> Debug.log, self.send))
+          )
+        }
+    } else {
+      Js.log("Finished!");
+      ReasonReact.NoUpdate
+    }}
+  | ProcessResult(usernames, images) => {
+      let queue = List.fold_left((acc, a) => 
+        if (!ListExtra.includes(a, acc) && !ListExtra.includes(a, state.processed)) {
+          [a, ...acc]        
+        } else {
+          acc
+        }
+      , state.queue, usernames);
       ReasonReact.UpdateWithSideEffects({
         ...state,
-        loading: false,
-        images: List.append(images, state.images)
-      }, self => self.send(ProcessQueue))
+        queue,
+        images: List.append(List.rev(images), state.images),
+        loading: false
+      }, self => self.send(ProcessQueue));
     }
   };
 
-let make = (_children) => { 
+let make = _children => {
   ...ReasonReact.reducerComponent("App"),
-  initialState: () => { 
+  initialState: () => {
     loading: false,
-    processed: [], 
+    processed: [],
     queue: ["instagram"],
     images: []
   },
   reducer,
-  render: (self) => {
-    let queueLength = (self.state.queue |> List.length |> string_of_int);
-
-    let loader = if (self.state.loading) {
-      Html.text("Loading...")
-    } else if (List.length(self.state.queue) > 0) {
-      <button onClick={(_) => self.send(ProcessQueue)}>(Html.text("fetch"))</button>
-    } else {
-      <div/>
-    };
-
+  render: ({ state, send })=> {
+    
+    let loader =
+      if (state.loading) {
+        Html.text("Loading...");
+      } else if (List.length(state.queue) > 0) {
+        <button onClick=((_) => send(ProcessQueue))>
+          (Html.text("fetch"))
+        </button>;
+      } else {
+        <div />;
+      };
     <div>
-      <h1>
-        (Html.text("In queue: " ++ queueLength))
-      </h1>
-      (loader)
+      <h1> (Html.text("Images: " ++ ListExtra.lengthToString(state.images))) </h1>
+      <h1> (Html.text("Processed: " ++ ListExtra.lengthToString(state.processed))) </h1>
+      <h1> (Html.text("Queue: " ++ ListExtra.lengthToString(state.queue))) </h1>
+      loader
       <div>
-        (Html.map(i => <img key=i.id src=i.src />, self.state.images))
+        (state.images |> List.rev |> Html.map(i => <img key=i.id height="650" width="650" src=i.src />))
       </div>
-    </div>
+    </div>;
   }
 };

@@ -1,0 +1,1 @@
+let equal = (a: string, b: string) => String.compare(a, b) == 0;
