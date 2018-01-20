@@ -26,8 +26,4 @@ My problems with Reason before any serious usage in production code. Divided in 
 
 ### Medium:
 
-\*
-
 ### Hard:
-
-\*
