@@ -21,7 +21,7 @@ My problems with Reason before any serious usage in production code. Divided in 
 * I have a problems with compilation and error messages ~and formatting~. ~I don't know why it's not working propertly for me. I have all required tools installed and available through terminal but in editor (VSCode), it's not working as intended.~ Project setup was done using `create-react-app` with `reason-scripts@0.8.0`. For some reason (no pun intended) error messages are broken for me, e.g:
   ![Example error 1](/assets/error_1.png)
   I'm expecting that it's an easy fix but it's causing a lot of headache right now.
-* List and String modules are not what I've expected. I was expecting more Elm/JS mix with some utils like String equality check that returns true.
+* List and String modules are not what I've expected. I was expecting more Elm/JS mix.
 * `Js.Log` returns `unit` so you cannot add it easly to pipe: `a |> List.map(a => b) |> Js.log |> Array.of_list`.
 
 ### Medium:
