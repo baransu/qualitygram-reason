@@ -5,6 +5,7 @@
     "reason-react",
     "bs-jest",
     "bs-fetch",
+    "bs-glamor",
     "@glennsl/bs-json"
   ],
   "reason": {

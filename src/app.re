@@ -1,3 +1,33 @@
+open Glamor;
+
+let is = (predicate, declaration) => predicate ? declaration : Nothing;
+
+module Button = {
+  let style = (~primary) =>
+    css([
+      display("inline-block"),
+      borderRadius("3px"),
+      padding("0.5rem 0"),
+      margin("0.5rem 1rem"),
+      width("11rem"),
+      background("transparent"),
+      color("white"),
+      textAlign("center"),
+      border("2px solid white"),
+      is(primary, background("white")),
+      is(primary, color("palevioletred"))
+    ]);
+  let make = (~onClick, ~className="", ~primary=false, children) => {
+    ...ReasonReact.statelessComponent("Button"),
+    render: _self =>
+      ReasonReact.createDomElement(
+        "button",
+        ~props={"onClick": onClick, "className": style(~primary) ++ className},
+        children
+      )
+  };
+};
+
 /**
  * Our types
  */
@@ -86,23 +116,15 @@ let fetchProfile = (username, send) =>
        |> Promise.all
      )
   |> Promise.andThen(images => {
-       
-       let usernames = 
-       images
-       |> Array.to_list
-       |> List.map(Decode.usernames)
-       |> List.flatten;
-
-       let images = images
-       |> Array.map(Decode.image)
-       |> Array.to_list;
-
+       let usernames =
+         images |> Array.to_list |> List.map(Decode.usernames) |> List.flatten;
+       let images = images |> Array.map(Decode.image) |> Array.to_list;
        let u = ListExtra.lengthToString(usernames);
        let i = ListExtra.lengthToString(images);
-        Js.log(username ++ ": found " ++ u ++ " usernames and " ++ i ++ " images!");
+       Js.log(
+         username ++ ": found " ++ u ++ " usernames and " ++ i ++ " images!"
+       );
        send(ProcessResult(usernames, images));
-       
-
        ();
      })
   |> ignore;
@@ -113,39 +135,47 @@ let fetchProfile = (username, send) =>
  */
 let reducer = (action, state) =>
   switch action {
-  | ProcessQueue => {
+  | ProcessQueue =>
     if (List.length(state.processed) < 20) {
       switch state.queue {
-        | [] => ReasonReact.NoUpdate
-        | [head, ...queue] =>
-          ReasonReact.UpdateWithSideEffects(
-            {...state,
-              queue, 
-              processed: [head, ...state.processed],
-              loading: true
-            },
-            (self => fetchProfile(head |> Debug.log, self.send))
-          )
-        }
+      | [] => ReasonReact.NoUpdate
+      | [head, ...queue] =>
+        ReasonReact.UpdateWithSideEffects(
+          {
+            ...state,
+            queue,
+            processed: [head, ...state.processed],
+            loading: true
+          },
+          (self => fetchProfile(head |> Debug.log, self.send))
+        )
+      };
     } else {
       Js.log("Finished!");
-      ReasonReact.NoUpdate
-    }}
-  | ProcessResult(usernames, images) => {
-      let queue = List.fold_left((acc, a) => 
-        if (!ListExtra.includes(a, acc) && !ListExtra.includes(a, state.processed)) {
-          [a, ...acc]        
-        } else {
-          acc
-        }
-      , state.queue, usernames);
-      ReasonReact.UpdateWithSideEffects({
+      ReasonReact.NoUpdate;
+    }
+  | ProcessResult(usernames, images) =>
+    let queue =
+      List.fold_left(
+        (acc, a) =>
+          if (! ListExtra.includes(a, acc)
+              && ! ListExtra.includes(a, state.processed)) {
+            [a, ...acc];
+          } else {
+            acc;
+          },
+        state.queue,
+        usernames
+      );
+    ReasonReact.UpdateWithSideEffects(
+      {
         ...state,
         queue,
         images: List.append(List.rev(images), state.images),
         loading: false
-      }, self => self.send(ProcessQueue));
-    }
+      },
+      (self => self.send(ProcessQueue))
+    );
   };
 
 let make = _children => {
@@ -157,25 +187,34 @@ let make = _children => {
     images: []
   },
   reducer,
-  render: ({ state, send })=> {
-    
+  render: ({state, send}) => {
     let loader =
       if (state.loading) {
         Html.text("Loading...");
       } else if (List.length(state.queue) > 0) {
-        <button onClick=((_) => send(ProcessQueue))>
+        <Button onClick=((_) => send(ProcessQueue)) primary=true>
           (Html.text("fetch"))
-        </button>;
+        </Button>;
       } else {
-        <div />;
+        ReasonReact.nullElement;
       };
     <div>
-      <h1> (Html.text("Images: " ++ ListExtra.lengthToString(state.images))) </h1>
-      <h1> (Html.text("Processed: " ++ ListExtra.lengthToString(state.processed))) </h1>
-      <h1> (Html.text("Queue: " ++ ListExtra.lengthToString(state.queue))) </h1>
+      <h1>
+        (Html.text("Images: " ++ ListExtra.lengthToString(state.images)))
+      </h1>
+      <h1>
+        (Html.text("Processed: " ++ ListExtra.lengthToString(state.processed)))
+      </h1>
+      <h1>
+        (Html.text("Queue: " ++ ListExtra.lengthToString(state.queue)))
+      </h1>
       loader
       <div>
-        (state.images |> List.rev |> Html.map(i => <img key=i.id height="650" width="650" src=i.src />))
+        (
+          state.images
+          |> List.rev
+          |> Html.map(i => <img key=i.id height="650" width="650" src=i.src />)
+        )
       </div>
     </div>;
   }
