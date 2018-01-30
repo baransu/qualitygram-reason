@@ -1,5 +1,22 @@
 # qualitygram-reason
 
+## Running application
+
+We have both frontend application as well as backend proxy to instagram public API.
+To run application run
+
+```
+yarn start
+```
+
+in one terminal and
+
+```
+yarn server
+```
+
+in other. You're application will be availabe at http://localhost:3000.
+
 Qualitygram written in Reason.
 
 ## Learning resources
@@ -23,7 +40,11 @@ My problems with Reason before any serious usage in production code. Divided in 
   I'm expecting that it's an easy fix but it's causing a lot of headache right now.
 * List and String modules are not what I've expected. I was expecting more Elm/JS mix.
 * `Js.Log` returns `unit` so you cannot add it easly to pipe: `a |> List.map(a => b) |> Js.log |> Array.of_list`.
+* First if struggled because Reason does not have template strings so it's not easy to create bindins to `styled-components`. There is probably some way but I had no idea how to do this. Then I've tried `bs-glomor` but I wasn't that nice. My main problem was with lack of creating components with styles the same was as `styled-components` nad `glamorous` are doing. After writing some code that was and doing some research about other libraries I've found `bs-css` which is using `glamor` underneath. It works quite good and changing my approach from creating components into creating just styles/class names works quite well. Im waiting which CSS-in-JS approach Reason will support as they docs are teasing [here](https://reasonml.github.io/reason-react/docs/en/style.html#docsNav):
+  > Since CSS-in-JS is all the rage right now, we'll recommend our official pick soon.
 
 ### Medium:
+
+* TODO: write more about passing down props
 
 ### Hard:

@@ -1,33 +1,3 @@
-open Glamor;
-
-let is = (predicate, declaration) => predicate ? declaration : Nothing;
-
-module Button = {
-  let style = (~primary) =>
-    css([
-      display("inline-block"),
-      borderRadius("3px"),
-      padding("0.5rem 0"),
-      margin("0.5rem 1rem"),
-      width("11rem"),
-      background("transparent"),
-      color("white"),
-      textAlign("center"),
-      border("2px solid white"),
-      is(primary, background("white")),
-      is(primary, color("palevioletred"))
-    ]);
-  let make = (~onClick, ~className="", ~primary=false, children) => {
-    ...ReasonReact.statelessComponent("Button"),
-    render: _self =>
-      ReasonReact.createDomElement(
-        "button",
-        ~props={"onClick": onClick, "className": style(~primary) ++ className},
-        children
-      )
-  };
-};
-
 /**
  * Our types
  */
@@ -190,7 +160,9 @@ let make = _children => {
   render: ({state, send}) => {
     let loader =
       if (state.loading) {
-        Html.text("Loading...");
+        <Button onClick=((_) => send(ProcessQueue)) primary=false>
+          (Html.text("Loading..."))
+        </Button>;
       } else if (List.length(state.queue) > 0) {
         <Button onClick=((_) => send(ProcessQueue)) primary=true>
           (Html.text("fetch"))
