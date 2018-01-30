@@ -8,9 +8,11 @@ type image = {
 
 type action =
   | ProcessQueue
-  | ProcessResult(list(string), list(image));
+  | ProcessResult(list(string), list(image))
+  | Error;
 
 type state = {
+  error: option(string),
   loading: bool,
   processed: list(string),
   queue: list(string),
@@ -97,6 +99,10 @@ let fetchProfile = (username, send) =>
        send(ProcessResult(usernames, images));
        ();
      })
+  |> Promise.catch((_) => {
+       send(Error);
+       Promise.resolve();
+     })
   |> ignore;
 
 /**
@@ -105,6 +111,8 @@ let fetchProfile = (username, send) =>
  */
 let reducer = (action, state) =>
   switch action {
+  | Error =>
+    ReasonReact.Update({...state, error: Some("Something went wrong")})
   | ProcessQueue =>
     if (List.length(state.processed) < 20) {
       switch state.queue {
@@ -151,6 +159,7 @@ let reducer = (action, state) =>
 let make = _children => {
   ...ReasonReact.reducerComponent("App"),
   initialState: () => {
+    error: None,
     loading: false,
     processed: [],
     queue: ["instagram"],
@@ -170,6 +179,11 @@ let make = _children => {
       } else {
         ReasonReact.nullElement;
       };
+    let error =
+      switch state.error {
+      | Some(e) => Html.text(e)
+      | None => ReasonReact.nullElement
+      };
     <div>
       <h1>
         (Html.text("Images: " ++ ListExtra.lengthToString(state.images)))
@@ -180,7 +194,8 @@ let make = _children => {
       <h1>
         (Html.text("Queue: " ++ ListExtra.lengthToString(state.queue)))
       </h1>
-      loader
+      (error)
+      (loader)
       <div>
         (
           state.images

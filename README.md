@@ -33,7 +33,7 @@ My problems with Reason before any serious usage in production code. Divided in 
 
 ### Easy:
 
-* Some problems with Promises and Fetch API. It can be a lot better not only in terms of better code (or batter naming), but also in terms of better documentation. Not clear and no examples how to handle errors properly.
+* Some problems with Promises and Fetch API. It can be a lot better not only in terms of better code (or batter naming), but also in terms of better documentation. Not clear and no examples how to handle errors properly. Some good resources on Promises. General though is to not rely on `then`/`catch` mechanism as in JS and rather on `Js.Result.(Error/Ok)` which makes sense but is more problematic when chaining. Can be wrapped for better expecience. Subject to investigate.
 * Not polished Promise API. `then_` works differently than in JS while we're expecting it to work the same. (https://github.com/BuckleScript/bucklescript/issues/1739, https://github.com/BuckleScript/bucklescript/pull/2046)
 * I have a problems with compilation and error messages ~and formatting~. ~I don't know why it's not working propertly for me. I have all required tools installed and available through terminal but in editor (VSCode), it's not working as intended.~ Project setup was done using `create-react-app` with `reason-scripts@0.8.0`. For some reason (no pun intended) error messages are broken for me, e.g:
   ![Example error 1](/assets/error_1.png)
