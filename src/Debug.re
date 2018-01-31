@@ -3,7 +3,7 @@ let log = a => {
   a;
 };
 
-let debugList = list => {
+let logList = list => {
   let array = Array.of_list(list);
   Js.log(array);
   list;

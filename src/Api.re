@@ -3,13 +3,14 @@ exception SieWyjebalo;
 
 let get = (path: string) =>
   Fetch.fetch(path)
-  |> Promise.then_(res => res |> Fetch.Response.json)
-  |> Promise.catch(err => {
+  |> Js.Promise.then_(res => res |> Fetch.Response.json)
+  |> Js.Promise.then_(res => res |> Task.success)
+  |> Js.Promise.catch(err => {
        Js.log(err);
-       Promise.reject(SieWyjebalo);
+       Task.fail("sie wyjebalo");
      });
 
-let getUser = (user: string) => get("/api/users/" ++ user);
+let getUser = (user: string) => get({j|/api/users/$user|j});
 
 let getImage = (user: string, code: string) =>
-  get("/api/users/" ++ user ++ "/" ++ code);
+  get({j|/api/users/$user/$code|j});

@@ -9,10 +9,10 @@ type image = {
 type action =
   | ProcessQueue
   | ProcessResult(list(string), list(image))
-  | Error;
+  | Error(list(string));
 
 type state = {
-  error: option(string),
+  error: option(list(string)),
   loading: bool,
   processed: list(string),
   queue: list(string),
@@ -30,45 +30,40 @@ module Decode = {
       field("media") @@
       field("nodes") @@
       array @@
-      field("code") @@
-      string
+      field("code", string)
     );
   let media = (json, decoder) =>
     Json.Decode.(
-      json |> field("graphql") @@ field("shortcode_media") @@ decoder
+      json |> field("graphql") @@ field("shortcode_media", decoder)
     );
   let image = json => {
     let media = media(json);
     Json.Decode.{
-      id: media @@ field("id") @@ string,
-      src: media @@ field("display_url") @@ string
+      id: media @@ field("id", string),
+      src: media @@ field("display_url", string)
     };
   };
   let usernames = json => {
     let media = media(json);
     let edges = decoder =>
-      Json.Decode.(field("edges") @@ array @@ field("node") @@ decoder);
+      Json.Decode.(field("edges") @@ array @@ field("node", decoder));
     let likes =
       Json.Decode.(
         media @@
         field("edge_media_preview_like") @@
         edges @@
-        field("username") @@
-        string
+        field("username", string)
       )
       |> Array.to_list;
-    /* |> Debug.log; */
     let comments =
       Json.Decode.(
         media @@
         field("edge_media_to_comment") @@
         edges @@
         field("owner") @@
-        field("username") @@
-        string
+        field("username", string)
       )
       |> Array.to_list;
-    /* |> Debug.log; */
     List.flatten([likes, comments]);
   };
 };
@@ -81,28 +76,27 @@ module Decode = {
  */
 let fetchProfile = (username, send) =>
   Api.getUser(username)
-  |> Promise.then_(profile =>
+  |> Task.andThen(profile =>
        profile
        |> Decode.codes
        |> Array.map(Api.getImage(username))
-       |> Promise.all
+       |> Array.to_list
+       |> Task.sequence
      )
-  |> Promise.andThen(images => {
-       let usernames =
-         images |> Array.to_list |> List.map(Decode.usernames) |> List.flatten;
-       let images = images |> Array.map(Decode.image) |> Array.to_list;
-       let u = ListExtra.lengthToString(usernames);
-       let i = ListExtra.lengthToString(images);
+  |> Task.map(images => {
+       let usernames = images |> List.map(Decode.usernames) |> List.flatten;
+       let images = images |> List.map(Decode.image);
        Js.log(
-         username ++ ": found " ++ u ++ " usernames and " ++ i ++ " images!"
+         username
+         ++ ": found "
+         ++ ListExtra.lengthToString(usernames)
+         ++ " usernames and "
+         ++ ListExtra.lengthToString(images)
+         ++ " images!"
        );
        send(ProcessResult(usernames, images));
-       ();
      })
-  |> Promise.catch((_) => {
-       send(Error);
-       Promise.resolve();
-     })
+  |> Task.mapError(errors => send(Error([errors])))
   |> ignore;
 
 /**
@@ -111,8 +105,7 @@ let fetchProfile = (username, send) =>
  */
 let reducer = (action, state) =>
   switch action {
-  | Error =>
-    ReasonReact.Update({...state, error: Some("Something went wrong")})
+  | Error(errors) => ReasonReact.Update({...state, error: Some(errors)})
   | ProcessQueue =>
     if (List.length(state.processed) < 20) {
       switch state.queue {
@@ -179,9 +172,9 @@ let make = _children => {
       } else {
         ReasonReact.nullElement;
       };
-    let error =
+    let errors =
       switch state.error {
-      | Some(e) => Html.text(e)
+      | Some(errors) => errors |> Html.map(Html.text)
       | None => ReasonReact.nullElement
       };
     <div>
@@ -194,8 +187,8 @@ let make = _children => {
       <h1>
         (Html.text("Queue: " ++ ListExtra.lengthToString(state.queue)))
       </h1>
-      (error)
-      (loader)
+      errors
+      loader
       <div>
         (
           state.images
